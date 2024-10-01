@@ -8,6 +8,7 @@ import config from "../../config";
 const createUser = async (req: Request, res: Response) => {
   try {
     const user = req.body;
+
     const password = user.password;
     const result = await UserServices.createUserIntoDB(password, user);
 
@@ -36,7 +37,8 @@ const loginUser = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "User logged in successfully!",
-    token,
+    accessToken: token,
+    refreshToken,
     data: user,
   });
 });

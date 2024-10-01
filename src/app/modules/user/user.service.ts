@@ -13,8 +13,42 @@ const createUserIntoDB = async (password: string, payload: TUser) => {
     throw new AppError(httpStatus.CONFLICT, "User already exists");
   }
 
-  const result = await User.create(payload);
-  return result;
+  // Create new user in the database
+  const newUser = await User.create(payload);
+
+  // Create JWT payload
+  const jwtPayload = {
+    sub: newUser._id,
+    name: newUser.name,
+    email: newUser.email,
+    phone: newUser.phone,
+    img: newUser.img,
+    role: newUser.role,
+    address: newUser.address,
+  };
+
+  // Create access token
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt_access_secret as string,
+    config.jwt_access_expires_in as string // Configure access token expiration time
+  );
+
+  // Create refresh token
+  const refreshToken = createToken(
+    jwtPayload,
+    config.jwt_refresh_secret as string,
+    config.jwt_refresh_expires_in as string // Configure refresh token expiration time
+  );
+
+  // Return user details and tokens (exclude password if necessary)
+  const { password: _, ...userWithoutPassword } = newUser.toObject();
+
+  return {
+    user: userWithoutPassword, // Exclude password from response
+    accessToken,
+    refreshToken,
+  };
 };
 
 const loginUser = async (payload: TLoginUser) => {
