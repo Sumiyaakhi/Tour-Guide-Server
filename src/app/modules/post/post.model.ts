@@ -1,5 +1,17 @@
 import { Schema, model } from "mongoose";
-import { TPost } from "./post.interface";
+import { IComment, TPost } from "./post.interface";
+
+const commentSchema = new Schema<IComment>({
+  comment: {
+    type: String,
+    required: true,
+  },
+  commenter: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+});
 
 const postSchema = new Schema<TPost>(
   {
@@ -31,30 +43,21 @@ const postSchema = new Schema<TPost>(
     },
     user: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User", // Reference to the User model
       required: true,
     },
     premium: {
       type: Boolean,
       default: false,
     },
+    comments: {
+      type: [commentSchema],
+      default: [],
+    },
   },
   {
-    timestamps: true, // Automatically manages createdAt and updatedAt
+    timestamps: true,
   }
 );
-
-// Middleware to increment post count in associated category
-// postSchema.post('save', async function (doc) {
-//   try {
-//     await PostCategory.findByIdAndUpdate(doc.category, {
-//       $inc: { postCount: 1 },
-//     });
-//   } catch (error) {
-//     throw new Error(
-//       `Failed to increment post count for category ${doc.category}: ${error}`
-//     );
-//   }
-// });
 
 export const Post = model<TPost>("Post", postSchema);

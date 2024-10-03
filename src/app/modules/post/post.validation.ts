@@ -42,10 +42,28 @@ const createPostValidationSchema = z.object({
       .min(0, { message: "Downvote cannot be less than 0" })
       .int({ message: "Downvote must be an integer" })
       .optional(),
+
+    // Validation for comments
+    comments: z
+      .array(
+        z.object({
+          comment: z.string({
+            required_error: "Comment is required",
+          }),
+          commenter: z
+            .string({
+              required_error: "Commenter is required",
+            })
+            .refine((val) => mongoose.Types.ObjectId.isValid(val), {
+              message: "Invalid commenter ID",
+            }),
+        })
+      )
+      .optional(),
   }),
 });
 
-// Define the validation schema for updating a post
+// Validation schema for updating a post
 const updatePostValidationSchema = z.object({
   body: z.object({
     title: z.string().optional(),
@@ -66,6 +84,21 @@ const updatePostValidationSchema = z.object({
     premium: z.boolean().optional(),
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
+
+    // Validation for comments
+    comment: z
+      .array(
+        z.object({
+          comment: z.string().optional(),
+          commenter: z
+            .string()
+            .refine((val) => mongoose.Types.ObjectId.isValid(val), {
+              message: "Invalid commenter ID",
+            })
+            .optional(),
+        })
+      )
+      .optional(),
   }),
 });
 

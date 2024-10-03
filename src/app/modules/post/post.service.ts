@@ -1,7 +1,7 @@
 import QueryBuilder from "../../builder/QueryBuilder";
 import { TImageFiles } from "../../interface/image.interface";
 import { PostsSearchableFields } from "./post.constant";
-import { TPost } from "./post.interface";
+import { IComment, TPost } from "./post.interface";
 import { Post } from "./post.model";
 import {
   SearchPostByDateRangeQueryMaker,
@@ -25,7 +25,12 @@ const getAllPostsFromDB = async (query: Record<string, unknown>) => {
   query = (await SearchPostByDateRangeQueryMaker(query)) || query;
 
   const postQuery = new QueryBuilder(
-    Post.find().populate("user").populate("category"),
+    Post.find()
+      .populate("user") // Populate the post user
+      .populate("category") // Populate the post category
+      .populate({
+        path: "comments.commenter", // Populate the commenter field within each comment
+      }),
     query
   )
     .filter()
@@ -55,6 +60,96 @@ const updatePostInDB = async (postId: string, payload: TPost) => {
   return result;
 };
 
+const updateUpvoteFromPost = async (
+  postId: string,
+  upvoteCount: number
+): Promise<TPost | null> => {
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { upvote: upvoteCount },
+      { new: true }
+    );
+
+    return updatedPost;
+  } catch (error) {
+    throw new Error(`Error updating upvote: ${error}`);
+  }
+};
+
+// Update downvote for a post
+const updateDownvoteFromPost = async (
+  postId: string,
+  downvoteCount: number
+): Promise<TPost | null> => {
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { downvote: downvoteCount },
+      { new: true }
+    );
+
+    return updatedPost;
+  } catch (error) {
+    throw new Error(`Error updating downvote: ${error}`);
+  }
+};
+
+// Update or add a comment to a post
+const addCommentOnPost = async (
+  postId: string,
+  commenterId: string,
+  comment: string
+) => {
+  const newComment = {
+    comment,
+    commenter: commenterId,
+  };
+
+  // Find the post by ID and push the new comment to the comments array
+  const updatedPost = await Post.findByIdAndUpdate(
+    postId, // First argument should be the post ID
+    { $push: { comments: newComment } }, // Pushing new comment to the comments array
+    { new: true } // Return the updated post
+  );
+
+  return updatedPost;
+};
+// Update a specific comment on a post
+const updateComment = async (
+  postId: string,
+  commentId: string,
+  newComment: string
+) => {
+  // Find the post containing the comment and update the specific comment
+  const post = await Post.findOneAndUpdate(
+    { _id: postId, "comments._id": commentId }, // Match post and specific comment
+    { $set: { "comments.$.comment": newComment } }, // Use positional operator `$` to update the specific comment
+    { new: true } // Return the updated document
+  );
+
+  if (!post) {
+    throw new Error("Post or comment not found");
+  }
+
+  return post; // Return the updated post with the updated comment
+};
+
+const deleteComment = async (postId: string, commentId: string) => {
+  // Find the post and delete the comment from the array
+  const post = await Post.findByIdAndUpdate(
+    postId,
+    { $pull: { comments: { _id: commentId } } }, // Pull the comment from the array
+    { new: true } // Return the updated document
+  );
+
+  if (!post) {
+    throw new Error("Post or comment not found");
+  }
+
+  return post; // Return the updated post
+};
+
 const deletePostFromDB = async (postId: string) => {
   const result = await Post.findByIdAndDelete(postId);
   // const deletedPostId = result?._id;
@@ -70,4 +165,9 @@ export const PostServices = {
   getPostFromDB,
   updatePostInDB,
   deletePostFromDB,
+  updateUpvoteFromPost,
+  updateDownvoteFromPost,
+  addCommentOnPost,
+  deleteComment,
+  updateComment,
 };

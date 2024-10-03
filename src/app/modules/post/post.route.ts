@@ -1,6 +1,11 @@
 import express from "express";
 
-import { PostControllers } from "./post.controller"; // Changed 'item' to 'post'
+import {
+  addComment,
+  PostControllers,
+  updateDownvote,
+  updateUpvote,
+} from "./post.controller"; // Changed 'item' to 'post'
 import { PostValidation } from "./post.validation"; // Changed 'item' to 'post'
 import auth from "../middlewares/auth";
 import validateRequest from "../middlewares/validateRequest";
@@ -28,11 +33,32 @@ router.get("/:id", PostControllers.getPost); // Updated 'getItem' to 'getPost'
 
 router.put(
   "/:id",
-  auth(USER_ROLE.user),
+  // multerUpload.fields([{ name: "commentImages" }]),
   validateRequest(PostValidation.updatePostValidationSchema), // Updated 'updateItemValidationSchema' to 'updatePostValidationSchema'
   PostControllers.updatePost // Updated controller reference
 );
 
+// Update upvote
+router.put("/upvote/:postId", auth(USER_ROLE.user), updateUpvote);
+
+// Update downvote
+router.put("/downvote/:postId", auth(USER_ROLE.user), updateDownvote);
+// Update comment on a post
+router.put("/comment/:postId", auth(USER_ROLE.user), addComment);
 router.delete("/:id", auth(USER_ROLE.user), PostControllers.deletePost); // Updated 'deleteItem' to 'deletePost'
+
+// Route to update a comment
+router.put(
+  "/:postId/comment/:commentId",
+  auth(USER_ROLE.user),
+  PostControllers.updateCommentController
+);
+
+// Route to delete a comment
+router.delete(
+  "/:postId/comment/:commentId",
+  auth(USER_ROLE.user),
+  PostControllers.deleteCommentController
+);
 
 export const PostRoutes = router; // Changed 'ItemRoutes' to 'PostRoutes'
