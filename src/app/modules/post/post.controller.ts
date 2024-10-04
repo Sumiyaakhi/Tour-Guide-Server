@@ -107,6 +107,47 @@ export const updateDownvote = async (
     res.status(500).json({ message: "Error updating downvote", error });
   }
 };
+// Decrease upvote
+export const decreaseUpvote = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { postId } = req.params; // Getting postId from URL params
+
+  try {
+    const updatedPost = await PostServices.decreaseUpvoteFromPost(postId);
+
+    if (!updatedPost) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    res.status(200).json(updatedPost); // Return the updated post
+  } catch (error) {
+    res.status(500).json({ message: "Error decreasing upvote", error });
+  }
+};
+
+// Decrease downvote
+export const decreaseDownvote = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { postId } = req.params; // Getting postId from URL params
+
+  try {
+    const updatedPost = await PostServices.decreaseDownvoteFromPost(postId);
+
+    if (!updatedPost) {
+      res.status(404).json({ message: "Post not found" });
+      return;
+    }
+
+    res.status(200).json(updatedPost); // Return the updated post
+  } catch (error) {
+    res.status(500).json({ message: "Error decreasing downvote", error });
+  }
+};
 
 export const addComment = async (req: Request, res: Response) => {
   const { commenter, comment } = req.body; // Extract commenter and comment from the body

@@ -67,13 +67,14 @@ const updateUpvoteFromPost = async (
   try {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
-      { upvote: upvoteCount },
-      { new: true }
+      { $inc: { upvote: 1 } }, // Increment the upvote count
+      { new: true } // Return the updated document
     );
 
-    return updatedPost;
+    return updatedPost; // Return the updated post
   } catch (error) {
-    throw new Error(`Error updating upvote: ${error}`);
+    console.error("Error in upvotePost service:", error);
+    throw new Error("Could not upvote the post"); // Throw an error to be caught in the controller
   }
 };
 
@@ -85,13 +86,48 @@ const updateDownvoteFromPost = async (
   try {
     const updatedPost = await Post.findByIdAndUpdate(
       postId,
-      { downvote: downvoteCount },
+      { $inc: { downvote: 1 } },
       { new: true }
     );
 
     return updatedPost;
   } catch (error) {
     throw new Error(`Error updating downvote: ${error}`);
+  }
+};
+
+const decreaseUpvoteFromPost = async (
+  postId: string
+): Promise<TPost | null> => {
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $inc: { upvote: -1 } }, // Decrement the upvote count
+      { new: true } // Return the updated document
+    );
+
+    return updatedPost; // Return the updated post
+  } catch (error) {
+    console.error("Error in decreaseUpvoteFromPost service:", error);
+    throw new Error("Could not decrease the upvote"); // Throw an error to be caught in the controller
+  }
+};
+
+// Decrease downvote count for a post
+const decreaseDownvoteFromPost = async (
+  postId: string
+): Promise<TPost | null> => {
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $inc: { downvote: -1 } }, // Decrement the downvote count
+      { new: true } // Return the updated document
+    );
+
+    return updatedPost; // Return the updated post
+  } catch (error) {
+    console.error("Error in decreaseDownvoteFromPost service:", error);
+    throw new Error("Could not decrease the downvote"); // Throw an error to be caught in the controller
   }
 };
 
@@ -170,4 +206,6 @@ export const PostServices = {
   addCommentOnPost,
   deleteComment,
   updateComment,
+  decreaseDownvoteFromPost,
+  decreaseUpvoteFromPost,
 };

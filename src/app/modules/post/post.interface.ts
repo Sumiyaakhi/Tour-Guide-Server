@@ -3,6 +3,8 @@ import { ObjectId } from "mongoose";
 export interface IComment {
   comment: string;
   commenter: ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 export interface TPost {
   _id: ObjectId;

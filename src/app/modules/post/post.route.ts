@@ -2,6 +2,8 @@ import express from "express";
 
 import {
   addComment,
+  decreaseDownvote,
+  decreaseUpvote,
   PostControllers,
   updateDownvote,
   updateUpvote,
@@ -39,10 +41,15 @@ router.put(
 );
 
 // Update upvote
-router.put("/upvote/:postId", auth(USER_ROLE.user), updateUpvote);
+router.put("/upvoteInc/:postId", auth(USER_ROLE.user), updateUpvote);
 
 // Update downvote
-router.put("/downvote/:postId", auth(USER_ROLE.user), updateDownvote);
+router.put("/downvoteInc/:postId", auth(USER_ROLE.user), updateDownvote);
+// Update upvote
+router.put("/upvoteDec/:postId", auth(USER_ROLE.user), decreaseUpvote);
+
+// Update downvote
+router.put("/downvoteDec/:postId", auth(USER_ROLE.user), decreaseDownvote);
 // Update comment on a post
 router.put("/comment/:postId", auth(USER_ROLE.user), addComment);
 router.delete("/:id", auth(USER_ROLE.user), PostControllers.deletePost); // Updated 'deleteItem' to 'deletePost'
