@@ -4,6 +4,9 @@ import sendResponse from "../../utils/sendResponse";
 import { UserServices } from "./user.service";
 import { NextFunction, Request, Response } from "express";
 import config from "../../config";
+import AppError from "../../error/AppError";
+import { TImageFiles } from "../../interface/image.interface";
+import { cloudinaryUpload } from "../../config/cloudinary.config";
 
 const createUser = async (req: Request, res: Response) => {
   try {
@@ -28,14 +31,14 @@ const loginUser = catchAsync(async (req, res) => {
   const { token } = result;
   const user = result.user;
   const { refreshToken } = result;
-  console.log(refreshToken);
+
   res.cookie("refreshToken", refreshToken, {
     secure: config.NODE_ENV === "production",
     httpOnly: true,
   });
-  res.status(200).json({
+
+  res.status(httpStatus.OK).json({
     success: true,
-    statusCode: httpStatus.OK,
     message: "User logged in successfully!",
     accessToken: token,
     refreshToken,
@@ -50,57 +53,99 @@ const refreshToken = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Access token is retrieved succesfully!",
+    message: "Access token retrieved successfully!",
     data: result,
   });
 });
 
-const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const users = await UserServices.getAllUsers();
-    return res.status(200).json({
-      success: true,
-      data: users,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const users = await UserServices.getAllUsers();
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: users,
+  });
+});
 
-// Controller to update a user's role
-const updateUserRole = async (
+const updateUserRole = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const { role } = req.body;
+
+  const updatedUser = await UserServices.updateUserRole(userId, role);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: "User role updated successfully",
+    data: updatedUser,
+  });
+});
+
+export const updateUserInfo = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const updatedData = req.body;
+
+    // If there is a file in the request, handle Cloudinary upload
+    if (req.files) {
+      const postImage = (
+        req.files as { [fieldname: string]: Express.Multer.File[] }
+      )["postImages"][0];
+
+      // Upload to Cloudinary
+      const result = await cloudinaryUpload.uploader.upload(postImage.path, {
+        folder: "profile_pictures", // Save images in this folder in Cloudinary
+      });
+
+      // Add the Cloudinary image URL to the updatedData object
+      updatedData.img = result.secure_url;
+    }
+
+    // Call the service to update the user data
+    const updatedUser = await UserServices.updateUserInfo(userId, updatedData);
+
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "User updated successfully",
+      data: updatedUser,
+    });
+  }
+);
+
+// Follow/Unfollow Controller
+const toggleFollowController = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
-    const { userId } = req.params; // Get userId from route parameters
-    const { role } = req.body; // Get new role from request body
+    const { currentUserId, targetUserId } = req.body; // Assuming user ID is available in req.body
+    console.log(currentUserId, targetUserId);
 
-    const updatedUser = await UserServices.updateUserRole(userId, role);
+    // Call the toggleFollowUser function to handle follow/unfollow logic
+    const { currentUser, targetUser, isFollowing } =
+      await UserServices.toggleFollowUser(currentUserId, targetUserId);
 
-    return res.status(200).json({
-      success: true,
-      message: "User role updated successfully",
-      data: updatedUser,
+    // Return updated users and follow status
+    res.status(200).json({
+      message: `You have successfully ${
+        isFollowing ? "followed" : "unfollowed"
+      } the user.`,
+      currentUser, // Includes populated followings
+      targetUser, // Includes populated followers
     });
-  } catch (error) {
-    next(error); // Pass the error to the error handler
+  } catch (error: any) {
+    next(error); // Pass error to the next middleware (error handler)
   }
 };
-const updateUserInfo = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.params.id;
-  // Get user ID from URL parameters
-  const updatedData = req.body; // Get updated data from request body
 
-  // Call the service to update user information
-  const user = await UserServices.updateUserInfo(userId, updatedData);
+const verifyUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
 
-  // If user is found and updated, send a successful response
+  const result = await UserServices.verifyUser(userId);
+
   res.status(httpStatus.OK).json({
     success: true,
-    message: "User updated successfully",
-    data: user, // Return the updated user data
+    message: "User verified successfully",
+    data: result,
   });
 });
 
@@ -111,4 +156,6 @@ export const UserControllers = {
   getAllUsers,
   updateUserRole,
   updateUserInfo,
+  verifyUser,
+  toggleFollowController,
 };

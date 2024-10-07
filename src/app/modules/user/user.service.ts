@@ -5,7 +5,9 @@ import AppError from "../../error/AppError";
 import jwt from "jsonwebtoken";
 import config from "../../config";
 import { createToken, verifyToken } from "./user.utils";
+import { TImageFiles } from "../../interface/image.interface";
 
+// Create a new user
 const createUserIntoDB = async (password: string, payload: TUser) => {
   // Check if user already exists
   const existingUser = await User.findOne({ email: payload.email });
@@ -25,6 +27,9 @@ const createUserIntoDB = async (password: string, payload: TUser) => {
     img: newUser.img,
     role: newUser.role,
     address: newUser.address,
+    followers: newUser.followers,
+    followings: newUser.followings,
+    bio: newUser.bio,
   };
 
   // Create access token
@@ -51,14 +56,61 @@ const createUserIntoDB = async (password: string, payload: TUser) => {
   };
 };
 
-const loginUser = async (payload: TLoginUser) => {
-  // Find user and explicitly select password field
-  const user = await User.findOne({ email: payload.email }).select("+password");
+// Log in user
+// const loginUser = async (
+//   payload: TLoginUser
+// ): Promise<{ token: string; refreshToken: string; user: Partial<TUser> }> => {
+//   const user = await User.findOne({ email: payload.email }).select("+password");
+//   if (!user) {
+//     throw new AppError(httpStatus.NOT_FOUND, "User not found");
+//   }
+
+//   const jwtPayload = {
+//     sub: user._id,
+//     name: user.name,
+//     email: user.email,
+//     phone: user.phone,
+//     img: user.img,
+//     role: user.role,
+//     bio: user.bio,
+//     address: user.address,
+//     verified: user.verified,
+//     followers: user.followers,
+//     followings: user.followings,
+//   };
+
+//   const token = createToken(
+//     jwtPayload,
+//     config.jwt_access_secret as string,
+//     config.jwt_access_expires_in as string
+//   );
+//   const refreshToken = createToken(
+//     jwtPayload,
+//     config.jwt_refresh_secret as string,
+//     config.jwt_refresh_expires_in as string
+//   );
+
+//   const { password, ...userWithoutPassword } = user.toObject();
+
+//   return {
+//     token,
+//     refreshToken,
+//     user: userWithoutPassword,
+//   };
+// };
+
+const loginUser = async (
+  payload: TLoginUser
+): Promise<{ token: string; refreshToken: string; user: Partial<TUser> }> => {
+  const user = await User.findOne({ email: payload.email })
+    .select("+password") // Include the password field to verify login
+    .populate("followers", "-password") // Populate followers excluding password
+    .populate("followings", "-password"); // Populate followings excluding password
+
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Create token and send to the user/client
   const jwtPayload = {
     sub: user._id,
     name: user.name,
@@ -66,38 +118,44 @@ const loginUser = async (payload: TLoginUser) => {
     phone: user.phone,
     img: user.img,
     role: user.role,
+    bio: user.bio,
     address: user.address,
+    verified: user.verified,
+    followers: user.followers, // Include populated followers
+    followings: user.followings, // Include populated followings
   };
-  const token = jwt.sign(jwtPayload, config.jwt_access_secret as string, {
-    expiresIn: "10d",
-  });
 
+  const token = createToken(
+    jwtPayload,
+    config.jwt_access_secret as string,
+    config.jwt_access_expires_in as string
+  );
   const refreshToken = createToken(
     jwtPayload,
     config.jwt_refresh_secret as string,
     config.jwt_refresh_expires_in as string
   );
-  // Return user details excluding password
+
   const { password, ...userWithoutPassword } = user.toObject();
 
   return {
     token,
     refreshToken,
-    user: userWithoutPassword,
+    user: userWithoutPassword, // Return user data without password
   };
 };
 
-const refreshToken = async (token: string) => {
-  // checking if the given token is valid
+// Refresh access token
+const refreshToken = async (
+  token: string
+): Promise<{ accessToken: string }> => {
   const decoded = verifyToken(token, config.jwt_refresh_secret as string);
+  const { email } = decoded;
 
-  const { email, iat } = decoded;
-
-  // checking if the user is exist
   const user = await User.isUserExists(email);
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "This user is not found !");
+    throw new AppError(httpStatus.NOT_FOUND, "This user is not found!");
   }
 
   const jwtPayload = { role: user.role };
@@ -107,41 +165,112 @@ const refreshToken = async (token: string) => {
     config.jwt_access_secret as string,
     config.jwt_access_expires_in as string
   );
-  return {
-    accessToken,
-  };
+  return { accessToken };
 };
 
-const getAllUsers = async () => {
-  const users = await User.find({});
-  return users;
+// Get all users
+const getAllUsers = async (): Promise<TUser[]> => {
+  return await User.find({});
 };
 
-// Update a user's role by userId
-const updateUserRole = async (userId: String, newRole: "admin" | "user") => {
+// Update user role
+const updateUserRole = async (
+  userId: string,
+  newRole: "admin" | "user"
+): Promise<TUser> => {
   const user = await User.findById(userId);
   if (!user) {
-    throw new Error("User not found");
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
-
   user.role = newRole;
   await user.save();
   return user;
 };
-const updateUserInfo = async (id: string, updatedData: Partial<TUser>) => {
-  const user = await User.findByIdAndUpdate(id, updatedData, {
-    new: true, // Return the updated user
-    runValidators: true, // Ensure validation is run on the updated data
+
+// Update user information
+export const updateUserInfo = async (
+  _id: string,
+  updatedData: Partial<TUser>
+): Promise<TUser | null> => {
+  // Find the user by ID and update the data
+  const user = await User.findByIdAndUpdate(_id, updatedData, {
+    new: true, // Return the updated document
+    runValidators: true, // Ensure data is validated
   });
 
-  // If no user is found, throw a "User not found" error
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  return user; // Return the updated user data
+  return user;
 };
 
+// Service to toggle follow/unfollow functionality
+const toggleFollowUser = async (
+  currentUserId: string,
+  targetUserId: string
+) => {
+  // Find the current user by ID
+  const currentUser = await User.findById(currentUserId);
+
+  // Find the target user by ID
+  const targetUser = await User.findById(targetUserId);
+
+  // If either user is not found, throw an error
+  if (!currentUser || !targetUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  // Ensure followings array is not undefined
+  currentUser.followings = currentUser.followings || [];
+
+  // Check if currentUser is already following the targetUser
+  const isFollowing = currentUser.followings.some(
+    (followId: any) => followId.toString() === targetUserId
+  );
+
+  if (isFollowing) {
+    // If already following, remove the follow relationship (Unfollow)
+    currentUser.followings = currentUser.followings.filter(
+      (followId: any) => followId.toString() !== targetUserId
+    );
+    targetUser.followers = targetUser.followers.filter(
+      (followerId: any) => followerId.toString() !== currentUserId
+    );
+  } else {
+    // If not following, add the follow relationship (Follow)
+    currentUser.followings.push(targetUser._id as any);
+    targetUser.followers.push(currentUser._id as any);
+  }
+
+  // Save both user documents after updating
+  await currentUser.save();
+  await targetUser.save();
+
+  // Populate followers and followings to return full user information
+  await currentUser.populate("followings", "-password");
+  await targetUser.populate("followers", "-password");
+
+  return {
+    currentUser,
+    targetUser,
+    isFollowing: !isFollowing, // Return the opposite of current state
+  };
+};
+
+// Verify a user
+const verifyUser = async (userId: string): Promise<TUser> => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  user.verified = true;
+  await user.save();
+  return user;
+};
+
+// Export UserServices
 export const UserServices = {
   createUserIntoDB,
   loginUser,
@@ -149,4 +278,6 @@ export const UserServices = {
   getAllUsers,
   updateUserRole,
   updateUserInfo,
+  toggleFollowUser,
+  verifyUser,
 };

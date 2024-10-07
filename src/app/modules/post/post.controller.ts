@@ -5,14 +5,13 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import AppError from "../../error/AppError";
 import { TImageFiles } from "../../interface/image.interface";
-import { IComment } from "./post.interface";
 
 const createPost = catchAsync(async (req: Request, res: Response) => {
   if (!req.files) {
     throw new AppError(400, "Please upload an image");
   }
-  console.log(req.files);
-  console.log(req.body);
+  // console.log(req.files);
+  // console.log(req.body);
   const post = await PostServices.createPostIntoDB(
     req.body,
     req.files as TImageFiles

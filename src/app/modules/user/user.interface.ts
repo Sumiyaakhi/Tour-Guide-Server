@@ -1,5 +1,12 @@
-import { Model } from "mongoose";
+import { Model, ObjectId } from "mongoose";
 import { USER_ROLE } from "./user.constant";
+
+export type TFollowers = {
+  _id: ObjectId;
+  follower: ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
 
 export interface TUser {
   _id: string;
@@ -10,8 +17,11 @@ export interface TUser {
   img: string;
   role: "admin" | "user";
   address: string;
-
+  bio?: string;
+  followers: TFollowers[];
+  followings: TFollowers[];
   refreshToken: number;
+  verified: boolean;
 }
 
 //

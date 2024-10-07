@@ -1,79 +1,53 @@
-import { Schema, model } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 import { TUser, UserModel } from "./user.interface";
-import bcrypt from "bcrypt";
-import config from "../../config";
+import { hash, compare } from "bcrypt"; // Assuming you are using bcrypt for password hashing
 
-const userSchema = new Schema<TUser, UserModel>(
+const UserSchema = new Schema<TUser>(
   {
-    name: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-      select: false,
-    },
-    phone: {
-      type: String,
-      required: true,
-    },
-    img: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["admin", "user"],
-      required: true,
-    },
-    address: {
-      type: String,
-      required: true,
-    },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    phone: { type: String, required: true },
+    img: { type: String, required: false },
+    bio: { type: String, required: false },
+    role: { type: String, enum: ["admin", "user"], default: "user" },
+    address: { type: String, required: true },
+    followers: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "User", default: [] }, // Initialize as empty array
+    ],
+    followings: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "User", default: [] }, // Initialize as empty array
+    ],
+    verified: { type: Boolean, default: false },
   },
   {
-    timestamps: true,
+    timestamps: true, // Automatically create createdAt and updatedAt fields
   }
 );
 
-userSchema.pre("findOneAndUpdate", async function (next) {
-  const update = this.getUpdate() as Partial<TUser>;
-
-  // Hash the password if it's being updated and exists in the update data
-  if (update.password) {
-    update.password = await bcrypt.hash(
-      update.password,
-      Number(config.bcrypt_salt_rounds)
-    );
-  }
-
-  next();
-});
-
-// Static method to check if user exists and retrieve password
-userSchema.statics.isUserExists = async function (email: string) {
-  return await this.findOne({ email }).select("+password");
+// Static methods for user model
+UserSchema.statics.isUserExists = async function (
+  email: string
+): Promise<TUser | null> {
+  return await this.findOne({ email });
 };
 
-// Static method to compare plain text password with hashed password
-userSchema.statics.isPasswordMatched = async function (
+UserSchema.statics.isPasswordMatched = async function (
   plainTextPassword: string,
   hashedPassword: string
-) {
-  return await bcrypt.compare(plainTextPassword, hashedPassword);
+): Promise<boolean> {
+  return await compare(plainTextPassword, hashedPassword);
 };
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-
-  this.password = await bcrypt.hash(this.password, 10);
+// Middleware to hash the password before saving the user
+UserSchema.pre("save", async function (this: TUser & Document, next) {
+  if (this.isModified("password")) {
+    this.password = await hash(this.password, 10); // Hashing with a salt of 10 rounds
+  }
   next();
 });
 
-export const User = model<TUser, UserModel>("User", userSchema);
+// Create the user model
+const User = mongoose.model<TUser, UserModel>("User", UserSchema);
+
+export { User };
