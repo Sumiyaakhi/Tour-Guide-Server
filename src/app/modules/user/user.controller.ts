@@ -4,8 +4,6 @@ import sendResponse from "../../utils/sendResponse";
 import { UserServices } from "./user.service";
 import { NextFunction, Request, Response } from "express";
 import config from "../../config";
-import AppError from "../../error/AppError";
-import { TImageFiles } from "../../interface/image.interface";
 import { cloudinaryUpload } from "../../config/cloudinary.config";
 
 const createUser = async (req: Request, res: Response) => {
