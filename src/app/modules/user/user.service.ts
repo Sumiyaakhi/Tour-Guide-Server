@@ -6,6 +6,12 @@ import jwt from "jsonwebtoken";
 import config from "../../config";
 import { createToken, verifyToken } from "./user.utils";
 import { TImageFiles } from "../../interface/image.interface";
+import { initiatePayment } from "../payment/payment.utils";
+
+interface PaymentSession {
+  status: number;
+  paymentUrl: string; // Adjust the type based on the actual structure of paymentSession
+}
 
 // Create a new user
 const createUserIntoDB = async (password: string, payload: TUser) => {
@@ -259,17 +265,35 @@ const toggleFollowUser = async (
 };
 
 // Verify a user
-const verifyUser = async (userId: string): Promise<TUser> => {
+const verifyUser = async (
+  userId: string
+): Promise<{ paymentSession: PaymentSession; user: TUser }> => {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  user.verified = true;
-  await user.save();
-  return user;
-};
+  const transactionId = `TXN-${Date.now()}`;
+  const paymentData = {
+    tran_id: transactionId,
+    price: 50,
+    userName: user.name,
+    userEmail: user.email,
+    userPhone: user.phone,
+    userAddress: user.address,
+  };
 
+  const paymentSession = await initiatePayment(paymentData);
+  if (paymentSession.status !== 200) {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Payment initiation failed"
+    );
+  }
+
+  // Return an object containing both paymentSession and user
+  return { paymentSession, user };
+};
 // Export UserServices
 export const UserServices = {
   createUserIntoDB,

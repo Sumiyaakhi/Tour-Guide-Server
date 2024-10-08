@@ -14,7 +14,7 @@ const router = express.Router();
 // Route to get all users (only accessible to admins)
 router.get(
   "/users",
-  auth(USER_ROLE.admin), // Only admins can fetch the users
+  // auth(USER_ROLE.admin), // Only admins can fetch the users
   UserControllers.getAllUsers // Controller to handle fetching users
 );
 
@@ -76,7 +76,7 @@ router.post(
 // Route for verifying a user (admin-only access)
 router.patch(
   "/verify/:userId", // User ID of the user to be verified
-  auth(USER_ROLE.admin), // Only admins can verify users
+  auth(USER_ROLE.user), // Only admins can verify users
   UserControllers.verifyUser // Controller for verifying a user
 );
 

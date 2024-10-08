@@ -1,19 +1,25 @@
+import { User } from "../user/user.model";
 import { verifyPament } from "./payment.utils";
 
-const confirmationService = async (tran_id: string, status: string) => {
-  const verifyResponse = await verifyPament(tran_id);
-  let result;
-  let message = "";
-
-  // if (verifyResponse && verifyResponse.pay_status === "Successful") {
-  //   result = await Booking.findOneAndUpdate(
-  //     { tran_id },
-  //     { paymentStatus: "Paid" }
-  //   );
-  //   message = "Successfully Paid!";
-  // } else {
-  //   message = "Payment Failed!";
-  // }
+const confirmationService = async (
+  cus_email: string,
+  tran_id: string,
+  pay_status: string
+) => {
+  const verifyResponse = await verifyPament(cus_email, tran_id);
+  console.log(verifyResponse);
+  let message = "User verification failed."; // Default message
+  if (verifyResponse && verifyResponse.pay_status === "Successful") {
+    // Find user by email
+    const user = await User.findOne({ email: cus_email });
+    if (user) {
+      user.verified = true;
+      await user.save();
+      message = "User Verified successfully!";
+    } else {
+      message = "User not found.";
+    }
+  }
 
   const template = `
     <!DOCTYPE html>
@@ -82,15 +88,17 @@ const confirmationService = async (tran_id: string, status: string) => {
     <body>
       <div class="container">
         <div class="icon ${
-          message === "Successfully Paid!" ? "success-icon" : "failed-icon"
+          message === "User Verified successfully!"
+            ? "success-icon"
+            : "failed-icon"
         }">
-          ${message === "Successfully Paid!" ? "✔️" : "❌"}
+          ${message === "User Verified successfully!" ? "✔️" : "❌"}
         </div>
         <div class="message">${message}</div>
         <p class="description">
           Thank you for your transaction. You will receive a confirmation email shortly.
         </p>
-        <a href="https://car-washing-system-client.vercel.app/" class="btn">Back To Home</a>
+        <a href="http://localhost:3000/profile" class="btn">Back To Home</a>
       </div>
     </body>
   </html>
