@@ -1,35 +1,62 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+var __awaiter =
+  (this && this.__awaiter) ||
+  function (thisArg, _arguments, P, generator) {
+    function adopt(value) {
+      return value instanceof P
+        ? value
+        : new P(function (resolve) {
+            resolve(value);
+          });
+    }
     return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
+      function fulfilled(value) {
+        try {
+          step(generator.next(value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function rejected(value) {
+        try {
+          step(generator["throw"](value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function step(result) {
+        result.done
+          ? resolve(result.value)
+          : adopt(result.value).then(fulfilled, rejected);
+      }
+      step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-};
+  };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentServices = void 0;
 const user_model_1 = require("../user/user.model");
 const payment_utils_1 = require("./payment.utils");
-const confirmationService = (cus_email, tran_id, pay_status) => __awaiter(void 0, void 0, void 0, function* () {
-    const verifyResponse = yield (0, payment_utils_1.verifyPament)(cus_email, tran_id);
+const confirmationService = (cus_email, tran_id, pay_status) =>
+  __awaiter(void 0, void 0, void 0, function* () {
+    const verifyResponse = yield (0, payment_utils_1.verifyPament)(
+      cus_email,
+      tran_id
+    );
     console.log("sdfghasfgi", verifyResponse);
     let message = "User verification failed."; // Default message
     const email = verifyResponse.cus_email;
     if (verifyResponse && verifyResponse.pay_status === "Successful") {
-        // Find user by email
-        console.log(`Looking for user with email: ${email}`);
-        const user = yield user_model_1.User.findOne({ email: email });
-        if (user) {
-            user.verified = true; // Set the user as verified
-            yield user.save();
-            message = "User Verified successfully!";
-        }
-        else {
-            message = "User not found."; // Log if the user is not found
-            console.error(`No user found with email: ${email}`);
-        }
+      // Find user by email
+      console.log(`Looking for user with email: ${email}`);
+      const user = yield user_model_1.User.findOne({ email: email });
+      if (user) {
+        user.verified = true; // Set the user as verified
+        yield user.save();
+        message = "User Verified successfully!";
+      } else {
+        message = "User not found."; // Log if the user is not found
+        console.error(`No user found with email: ${email}`);
+      }
     }
     const template = `
     <!DOCTYPE html>
@@ -97,20 +124,22 @@ const confirmationService = (cus_email, tran_id, pay_status) => __awaiter(void 0
     </head>
     <body>
       <div class="container">
-        <div class="icon ${message === "User Verified successfully!"
-        ? "success-icon"
-        : "failed-icon"}">
+        <div class="icon ${
+          message === "User Verified successfully!"
+            ? "success-icon"
+            : "failed-icon"
+        }">
           ${message === "User Verified successfully!" ? "✔️" : "❌"}
         </div>
         <div class="message">${message}</div>
         <p class="description">
           Thank you for your transaction. You will receive a confirmation email shortly.
         </p>
-        <a href="http://localhost:3000/profile" class="btn">Back To Profile?</a>
+        <a href="https://wayfarer-world-client.vercel.app/profile" class="btn">Back To Profile?</a>
       </div>
     </body>
   </html>
   `;
     return template;
-});
+  });
 exports.PaymentServices = { confirmationService };

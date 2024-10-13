@@ -15,7 +15,7 @@ const image_validation_1 = require("../../zod/image.validation");
 const validateImageFileRequest_1 = __importDefault(require("../middlewares/validateImageFileRequest"));
 const bodyParser_1 = require("../middlewares/bodyParser");
 const router = express_1.default.Router();
-router.post("/", (0, auth_1.default)(user_constant_1.USER_ROLE.user), multer_config_1.multerUpload.fields([{ name: "postImages" }]), // Changed 'itemImages' to 'postImages'
+router.post("/", multer_config_1.multerUpload.fields([{ name: "postImages" }]), // Changed 'itemImages' to 'postImages'
 (0, validateImageFileRequest_1.default)(image_validation_1.ImageFilesArrayZodSchema), bodyParser_1.parseBody, (0, validateRequest_1.default)(post_validation_1.PostValidation.createPostValidationSchema), // Updated 'createItemValidationSchema' to 'createPostValidationSchema'
 post_controller_1.PostControllers.createPost // Updated controller reference
 );

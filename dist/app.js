@@ -15,12 +15,10 @@ app.use((0, cookie_parser_1.default)());
 // CORS configuration to allow requests from the frontend
 app.use((0, cors_1.default)({
     origin: [
-        "http://localhost:3000", // Development origin
-        // "https://car-washing-system-client.vercel.app",
-        // "https://assignment-3-sepia-six.vercel.app",
-        // Production origin
+        "http://localhost:3000",
+        "https://wayfarer-world-client.vercel.app", // Development origin
     ],
-    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+    credentials: true,
 }));
 // Application routes
 app.use("/api", routes_1.default);

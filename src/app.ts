@@ -15,12 +15,10 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      "http://localhost:3000", // Development origin
-      // "https://car-washing-system-client.vercel.app",
-      // "https://assignment-3-sepia-six.vercel.app",
-      // Production origin
+      "http://localhost:3000",
+      "https://wayfarer-world-client.vercel.app", // Development origin
     ],
-    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+    credentials: true,
   })
 );
 

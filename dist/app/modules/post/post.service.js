@@ -16,7 +16,6 @@ exports.PostServices = void 0;
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const post_constant_1 = require("./post.constant");
 const post_model_1 = require("./post.model");
-const post_utils_1 = require("./post.utils");
 const createPostIntoDB = (payload, images) => __awaiter(void 0, void 0, void 0, function* () {
     const { postImages } = images;
     console.log(postImages);
@@ -48,26 +47,30 @@ const createPostIntoDB = (payload, images) => __awaiter(void 0, void 0, void 0, 
     return result;
 });
 const getAllPostsFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
-    // Generate user-based queries (e.g., filter by user)
-    query = (yield (0, post_utils_1.SearchPostByUserQueryMaker)(query)) || query;
-    // Generate date range queries (if applicable)
-    query = (yield (0, post_utils_1.SearchPostByDateRangeQueryMaker)(query)) || query;
-    // Add search term logic
-    if (query.searchTerm) {
-        const searchRegex = new RegExp(query.searchTerm, "i"); // Case-insensitive regex search
-        query.$or = [
-            { title: searchRegex },
-            { content: searchRegex },
-            { "user.name": searchRegex }, // Assuming user field is populated with the name
-        ];
-        delete query.searchTerm; // Remove `searchTerm` from the query since it's already handled
+    // Initialize an empty query object for MongoDB
+    const mongoQuery = {};
+    // Check if userId is present in the query and add it to the mongoQuery
+    if (query.user) {
+        mongoQuery.user = query.user; // Adjust this if you're storing the user ID differently
+    }
+    // Initialize the $or array for search criteria
+    const searchConditions = [];
+    // Check if searchTerm is present
+    if (query.searchBy) {
+        const searchRegex = new RegExp(query.searchBy, "i"); // Case-insensitive regex search
+        searchConditions.push({ title: searchRegex }, { content: searchRegex }, { "user.name": searchRegex } // Assuming user field is populated with the name
+        );
+    }
+    // If there are search conditions, add them to the mongoQuery
+    if (searchConditions.length > 0) {
+        mongoQuery.$or = searchConditions;
     }
     // Handle category filtering
     if (query.category) {
-        query.category = query.category; // Assuming `category` is an ObjectId or a string
+        mongoQuery.category = query.category; // Assuming `category` is an ObjectId or a string
     }
     // Building the main query using the QueryBuilder utility
-    const postQuery = new QueryBuilder_1.default(post_model_1.Post.find()
+    const postQuery = new QueryBuilder_1.default(post_model_1.Post.find(mongoQuery) // Pass the mongoQuery to filter posts
         .populate("user") // Populate the post user
         .populate("category") // Populate the post category
         .populate({
@@ -75,8 +78,13 @@ const getAllPostsFromDB = (query) => __awaiter(void 0, void 0, void 0, function*
     }), query)
         .filter()
         .search(post_constant_1.PostsSearchableFields) // Search in searchable fields
-        .sort() // Apply sorting (if any)
+        .sort()
         .fields(); // Select specific fields (if needed)
+    // Handle sorting based on upvotes and downvotes
+    if (query.sort) {
+        const sortField = query.sort === "upvotes" ? { upvotes: -1 } : { downvotes: -1 };
+        postQuery.modelQuery = postQuery.modelQuery.sort(sortField); // Apply sorting
+    }
     // Execute the query and return the result
     const result = yield postQuery.modelQuery;
     return result;
