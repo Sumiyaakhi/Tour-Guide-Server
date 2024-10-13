@@ -1,5 +1,6 @@
 import QueryBuilder from "../../builder/QueryBuilder";
 import { TImageFiles } from "../../interface/image.interface";
+import meiliClient from "../../utils/meilisearch";
 import { PostsSearchableFields } from "./post.constant";
 import { IComment, TPost } from "./post.interface";
 import { Post } from "./post.model";
@@ -14,18 +15,69 @@ const createPostIntoDB = async (payload: TPost, images: TImageFiles) => {
   payload.images = postImages.map((image: any) => image.path);
   console.log(postImages);
   const result = await Post.create(payload);
+  // const {
+  //   _id,
+  //   title,
+  //   content,
+  //   user,
+  //   images: postThumbnails,
+  //   category,
+  //   premium,
+  // } = result;
+  // await meiliClient
+  //   .index("post")
+  //   .addDocuments([
+  //     {
+  //       _id: _id.toString(),
+  //       title,
+  //       content,
+  //       user,
+  //       images: postThumbnails,
+  //       category,
+  //       premium,
+  //     },
+  //   ]);
 
   return result;
 };
 
+import { SortOrder } from "mongoose"; // Import SortOrder from mongoose
+
 const getAllPostsFromDB = async (query: Record<string, unknown>) => {
-  query = (await SearchPostByUserQueryMaker(query)) || query;
+  // Initialize an empty query object for MongoDB
+  const mongoQuery: Record<string, unknown> = {};
 
-  // Date range search
-  query = (await SearchPostByDateRangeQueryMaker(query)) || query;
+  // Check if userId is present in the query and add it to the mongoQuery
+  if (query.user) {
+    mongoQuery.user = query.user; // Adjust this if you're storing the user ID differently
+  }
 
+  // Initialize the $or array for search criteria
+  const searchConditions = [];
+
+  // Check if searchTerm is present
+  if (query.searchBy) {
+    const searchRegex = new RegExp(query.searchBy as string, "i"); // Case-insensitive regex search
+    searchConditions.push(
+      { title: searchRegex },
+      { content: searchRegex },
+      { "user.name": searchRegex } // Assuming user field is populated with the name
+    );
+  }
+
+  // If there are search conditions, add them to the mongoQuery
+  if (searchConditions.length > 0) {
+    mongoQuery.$or = searchConditions;
+  }
+
+  // Handle category filtering
+  if (query.category) {
+    mongoQuery.category = query.category; // Assuming `category` is an ObjectId or a string
+  }
+
+  // Building the main query using the QueryBuilder utility
   const postQuery = new QueryBuilder(
-    Post.find()
+    Post.find(mongoQuery) // Pass the mongoQuery to filter posts
       .populate("user") // Populate the post user
       .populate("category") // Populate the post category
       .populate({
@@ -34,10 +86,18 @@ const getAllPostsFromDB = async (query: Record<string, unknown>) => {
     query
   )
     .filter()
-    .search(PostsSearchableFields)
+    .search(PostsSearchableFields) // Search in searchable fields
     .sort()
-    .fields();
+    .fields(); // Select specific fields (if needed)
 
+  // Handle sorting based on upvotes and downvotes
+  if (query.sort) {
+    const sortField: Record<string, SortOrder> =
+      query.sort === "upvotes" ? { upvotes: -1 } : { downvotes: -1 };
+    postQuery.modelQuery = postQuery.modelQuery.sort(sortField); // Apply sorting
+  }
+
+  // Execute the query and return the result
   const result = await postQuery.modelQuery;
 
   return result;

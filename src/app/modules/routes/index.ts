@@ -3,6 +3,7 @@ import { UserRoutes } from "../user/user.route";
 import { PaymentRoutes } from "../payment/payment.route";
 import { AuthRouter } from "../auth/auth.route";
 import { PostRoutes } from "../post/post.route";
+import { MeilisearchRoutes } from "../meilisearch/meilisearch.route";
 
 const router = Router();
 
@@ -23,6 +24,10 @@ const moduleRoutes = [
   {
     path: "/auth",
     route: AuthRouter,
+  },
+  {
+    path: "/search-items",
+    route: MeilisearchRoutes,
   },
 ];
 

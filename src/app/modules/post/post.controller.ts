@@ -5,6 +5,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import AppError from "../../error/AppError";
 import { TImageFiles } from "../../interface/image.interface";
+import meiliClient from "../../utils/meilisearch";
 
 const createPost = catchAsync(async (req: Request, res: Response) => {
   if (!req.files) {

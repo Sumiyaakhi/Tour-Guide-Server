@@ -147,6 +147,18 @@ const verifyUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await UserServices.deleteUserFromDB(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Post deleted successfully",
+    data: null,
+  });
+});
+
 export const UserControllers = {
   createUser,
   loginUser,
@@ -156,4 +168,5 @@ export const UserControllers = {
   updateUserInfo,
   verifyUser,
   toggleFollowController,
+  deleteUser,
 };

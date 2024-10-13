@@ -21,7 +21,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  auth(USER_ROLE.user),
+
   multerUpload.fields([{ name: "postImages" }]), // Changed 'itemImages' to 'postImages'
   validateImageFileRequest(ImageFilesArrayZodSchema),
   parseBody,
@@ -52,7 +52,7 @@ router.put("/upvoteDec/:postId", auth(USER_ROLE.user), decreaseUpvote);
 router.put("/downvoteDec/:postId", auth(USER_ROLE.user), decreaseDownvote);
 // Update comment on a post
 router.put("/comment/:postId", auth(USER_ROLE.user), addComment);
-router.delete("/:id", auth(USER_ROLE.user), PostControllers.deletePost); // Updated 'deleteItem' to 'deletePost'
+router.delete("/:id", PostControllers.deletePost); // Updated 'deleteItem' to 'deletePost'
 
 // Route to update a comment
 router.put(

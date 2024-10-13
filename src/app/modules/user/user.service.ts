@@ -294,7 +294,15 @@ const verifyUser = async (
   // Return an object containing both paymentSession and user
   return { paymentSession, user };
 };
+
+const deleteUserFromDB = async (userId: string) => {
+  const result = await User.findByIdAndDelete(userId);
+
+  return result;
+};
+
 // Export UserServices
+
 export const UserServices = {
   createUserIntoDB,
   loginUser,
@@ -304,4 +312,5 @@ export const UserServices = {
   updateUserInfo,
   toggleFollowUser,
   verifyUser,
+  deleteUserFromDB,
 };

@@ -20,7 +20,7 @@ router.get(
 
 // Route to update user roles (admin-only access)
 router.patch(
-  "user/:userId", // Use a dynamic route to specify the user being updated
+  "/user/:userId", // Use a dynamic route to specify the user being updated
   auth(USER_ROLE.admin), // Only admins can update roles
   validateRequest(userValidation.updateUserRoleValidationSchema), // Validation for role updates
   UserControllers.updateUserRole // Controller to handle role updates
@@ -79,5 +79,8 @@ router.patch(
   auth(USER_ROLE.user), // Only admins can verify users
   UserControllers.verifyUser // Controller for verifying a user
 );
+
+// Route to delete a comment
+router.delete("/:id", auth(USER_ROLE.admin), UserControllers.deleteUser);
 
 export const UserRoutes = router;
